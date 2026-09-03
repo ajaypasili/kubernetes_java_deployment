@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productcatalogue
+  namespace: djshopping
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: productcatalogue
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: productcatalogue
+    spec:
+      containers:
+        - name: productcatalogue
+          image: ajaypasili/productcatalogue:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8020
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: productcatalogue
+  namespace: djshopping
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: productcatalogue
+  ports:
+    - name: http
+      port: 8020
+      targetPort: http
