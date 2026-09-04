@@ -1,56 +1,42 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: stockmanager
-  namespace: djshopping
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: stockmanager
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: stockmanager
-    spec:
-      containers:
-        - name: stockmanager
-          image: ajaypasili/stockmanager:1.0.0
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: http
-              containerPort: 8030
-
-          readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
-              port: http
-            initialDelaySeconds: 20
-            periodSeconds: 20
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: stockmanager
-  namespace: djshopping
+  labels:
+    app: stockmanager
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
-    app.kubernetes.io/name: stockmanager
+    app: stockmanager
   ports:
-    - name: http
-      port: 8030
-      targetPort: http
+  - protocol: TCP
+    port: 8030
+    name: http
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stockmanager
+spec:
+  selector:
+    matchLabels:
+      app: stockmanager
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: stockmanager
+    spec:
+      containers:
+      - name: stockmanager
+        image: ajaypasili/stockmanager:latest
+        ports:
+        - containerPort: 8030
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8030
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
